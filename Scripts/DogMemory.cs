@@ -161,16 +161,23 @@ public class DogMemory
 
 	public string GetMemorySummary()
 	{
+		return GetRecentMemorySummary(Memories.Count);
+	}
+
+	public string GetRecentMemorySummary(int maxCount)
+	{
 		if (Memories.Count == 0)
 		{
 			return "No memories yet.";
 		}
 
+		int safeMaxCount = Math.Max(maxCount, 0);
+		int startIndex = Math.Max(Memories.Count - safeMaxCount, 0);
 		string result = "";
 
-		foreach (string memory in Memories)
+		for (int i = startIndex; i < Memories.Count; i++)
 		{
-			result += "- " + memory + "\n";
+			result += "- " + Memories[i] + "\n";
 		}
 
 		return result;
