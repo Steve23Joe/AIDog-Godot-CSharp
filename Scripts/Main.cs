@@ -19,6 +19,10 @@ public partial class Main : Node2D
 	private bool _lastCommandSucceeded = false;
 	private bool _hasPendingFeedback = false;
 
+	private double _autonomousTimer = 0.0;
+	private double _nextAutonomousDelay = 4.0;
+	private bool _autonomousEnabled = true;
+
 	public override void _Ready()
 	{
 		_rng.Randomize();
@@ -43,7 +47,7 @@ public partial class Main : Node2D
 		AddLog("Try typing: 小黑，把球捡回来");
 		AddLog("Try typing: 乖狗狗，过来");
 		AddLog("After each command, click Reward or Scold.");
-		AddLog("V1: Dog memory will be saved after Reward or Scold.");
+		AddLog("V2: Dog can act on its own when it is not waiting for feedback.");
 
 		UpdateStats();
 	}
@@ -70,7 +74,82 @@ public partial class Main : Node2D
 			}
 		}
 
+		UpdateAutonomousBehavior(delta);
+
 		QueueRedraw();
+	}
+
+	private void UpdateAutonomousBehavior(double delta)
+	{
+		if (!_autonomousEnabled || _dog == null || _hasPendingFeedback)
+		{
+			return;
+		}
+
+		_autonomousTimer += delta;
+
+		if (_autonomousTimer < _nextAutonomousDelay)
+		{
+			return;
+		}
+
+		_autonomousTimer = 0.0;
+
+		if (CanStartAutonomousBehavior())
+		{
+			DecideAutonomousBehavior();
+		}
+
+		ResetAutonomousDelay();
+	}
+
+	private bool CanStartAutonomousBehavior()
+	{
+		return _dog.State == DogController.DogState.Idle ||
+			_dog.State == DogController.DogState.Sit ||
+			_dog.State == DogController.DogState.Stay ||
+			_dog.State == DogController.DogState.Sleep;
+	}
+
+	private void ResetAutonomousDelay()
+	{
+		_nextAutonomousDelay = _rng.RandfRange(4.0f, 7.0f);
+	}
+
+	private void DecideAutonomousBehavior()
+	{
+		if (_memory.Energy <= 20)
+		{
+			_dog.StartSleep();
+			_memory.Mood = "sleepy";
+			AddLog($"{_memory.DogName} is tired and lies down to rest.");
+		}
+		else if (_memory.Trust >= 70 && _memory.Attachment >= 60)
+		{
+			_dog.StartCome();
+			_memory.Mood = "attached";
+			AddLog($"{_memory.DogName} walks closer to you.");
+		}
+		else if (_memory.Energy >= 60 && _memory.Playfulness >= 60)
+		{
+			_dog.StartGoToBall();
+			_memory.Mood = "playful";
+			AddLog($"{_memory.DogName} notices the ball and wants to play.");
+		}
+		else if (_memory.Trust <= 25)
+		{
+			_dog.StartConfused();
+			_memory.Mood = "nervous";
+			AddLog($"{_memory.DogName} seems nervous and confused.");
+		}
+		else if (_memory.Curiosity >= 60)
+		{
+			_dog.StartWander(GetRandomPointInPlayArea(30.0f));
+			_memory.Mood = "curious";
+			AddLog($"{_memory.DogName} wanders around curiously.");
+		}
+
+		UpdateStats();
 	}
 
 	private void CreateWorld()
@@ -183,6 +262,9 @@ public partial class Main : Node2D
 			AddLog("Please type a command first.");
 			return;
 		}
+
+		_autonomousTimer = 0.0;
+		ResetAutonomousDelay();
 
 		DogCommand command = LocalAiDogParser.Parse(text, _memory);
 		_lastCommand = command;
@@ -332,7 +414,11 @@ public partial class Main : Node2D
 		if (_lastCommand.Intent == "unknown")
 		{
 			_memory.Trust -= 4;
+			_memory.Attachment -= 3;
+			_memory.Playfulness -= 2;
 			_memory.Trust = Mathf.Clamp(_memory.Trust, 0, 100);
+			_memory.Attachment = Mathf.Clamp(_memory.Attachment, 0, 100);
+			_memory.Playfulness = Mathf.Clamp(_memory.Playfulness, 0, 100);
 			_memory.Mood = "nervous";
 			_memory.AddMemory($"{_memory.DogName} was scolded after an unknown command.");
 
@@ -451,6 +537,9 @@ public partial class Main : Node2D
 		text += $"Mood: {_memory.Mood}\n";
 		text += $"Trust: {_memory.Trust}/100\n";
 		text += $"Energy: {_memory.Energy}/100\n";
+		text += $"State: {_dog.State}\n";
+		text += "\nPersonality:\n";
+		text += _memory.GetPersonalitySummary();
 		text += "\nSkills:\n";
 		text += _memory.GetSkillSummary();
 		text += "\nRecent Memories:\n";

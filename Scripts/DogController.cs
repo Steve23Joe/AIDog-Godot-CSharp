@@ -12,6 +12,7 @@ public partial class DogController : CharacterBody2D
 		FetchGoToBall,
 		FetchReturn,
 		Play,
+		Wander,
 		Sleep,
 		Confused
 	}
@@ -30,6 +31,7 @@ public partial class DogController : CharacterBody2D
 
 	private double _stateTimer = 0.0;
 	private Vector2 _playDirection = Vector2.Right;
+	private Vector2 _wanderTarget = Vector2.Zero;
 
 	public override void _Ready()
 	{
@@ -70,6 +72,10 @@ public partial class DogController : CharacterBody2D
 
 			case DogState.Play:
 				PlayAround(delta);
+				break;
+
+			case DogState.Wander:
+				MoveTowardTarget(_wanderTarget, 18.0f);
 				break;
 
 			case DogState.Sleep:
@@ -128,6 +134,19 @@ public partial class DogController : CharacterBody2D
 	{
 		State = DogState.Sleep;
 		_stateTimer = 0.0;
+	}
+
+	public void StartWander(Vector2 target)
+	{
+		_wanderTarget = ClampPointInsideBounds(target);
+		State = DogState.Wander;
+		_stateTimer = 0.0;
+	}
+
+	public void StartGoToBall()
+	{
+		IsCarryingBall = false;
+		StartWander(BallPosition);
 	}
 
 	public void StartConfused()
@@ -290,7 +309,7 @@ public partial class DogController : CharacterBody2D
 		Vector2 tailStart = new Vector2(-20, 4);
 		Vector2 tailEnd = new Vector2(-38, -8);
 
-		if (State == DogState.Play || State == DogState.Follow)
+		if (State == DogState.Play || State == DogState.Follow || State == DogState.Wander)
 		{
 			tailEnd = new Vector2(-40, -16);
 		}
