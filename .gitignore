@@ -1,0 +1,24 @@
+# Godot
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+
+# Godot Mono / C#
+.mono/
+bin/
+obj/
+.vs/
+.vscode/
+
+# Build outputs
+*.tmp
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# User save data
+*.save
+aidog_save.json
