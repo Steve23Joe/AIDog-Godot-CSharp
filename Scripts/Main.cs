@@ -97,6 +97,7 @@ public partial class Main : Node2D
 		PanelContainer panel = new PanelContainer();
 		panel.Position = new Vector2(20, 20);
 		panel.CustomMinimumSize = new Vector2(420, 500);
+		panel.Size = new Vector2(420, 500);
 		canvas.AddChild(panel);
 
 		VBoxContainer vbox = new VBoxContainer();
@@ -106,9 +107,18 @@ public partial class Main : Node2D
 		title.Text = "AI Dog Training Demo";
 		vbox.AddChild(title);
 
+		ScrollContainer statsScroll = new ScrollContainer();
+		statsScroll.CustomMinimumSize = new Vector2(390, 230);
+		statsScroll.HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled;
+		statsScroll.VerticalScrollMode = ScrollContainer.ScrollMode.Auto;
+		vbox.AddChild(statsScroll);
+
 		_statsLabel = new Label();
 		_statsLabel.Text = "";
-		vbox.AddChild(_statsLabel);
+		_statsLabel.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+		_statsLabel.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+		_statsLabel.CustomMinimumSize = new Vector2(370, 0);
+		statsScroll.AddChild(_statsLabel);
 
 		_input = new LineEdit();
 		_input.PlaceholderText = "输入指令：小黑，坐下 / 小黑，把球捡回来";
@@ -118,7 +128,7 @@ public partial class Main : Node2D
 		vbox.AddChild(row);
 
 		Button sendButton = new Button();
-		sendButton.Text = "Send Command";
+		sendButton.Text = "Send";
 		sendButton.Pressed += OnSendCommandPressed;
 		row.AddChild(sendButton);
 
@@ -133,7 +143,7 @@ public partial class Main : Node2D
 		row.AddChild(scoldButton);
 
 		Button resetBallButton = new Button();
-		resetBallButton.Text = "Throw Ball";
+		resetBallButton.Text = "Ball";
 		resetBallButton.Pressed += OnThrowBallPressed;
 		row.AddChild(resetBallButton);
 
@@ -141,22 +151,25 @@ public partial class Main : Node2D
 		vbox.AddChild(saveRow);
 
 		Button saveButton = new Button();
-		saveButton.Text = "Save Memory";
+		saveButton.Text = "Save";
 		saveButton.Pressed += OnSaveMemoryPressed;
 		saveRow.AddChild(saveButton);
 
 		Button loadButton = new Button();
-		loadButton.Text = "Load Memory";
+		loadButton.Text = "Load";
 		loadButton.Pressed += OnLoadMemoryPressed;
 		saveRow.AddChild(loadButton);
 
 		Button resetMemoryButton = new Button();
-		resetMemoryButton.Text = "Reset Memory";
+		resetMemoryButton.Text = "Reset";
 		resetMemoryButton.Pressed += OnResetMemoryPressed;
 		saveRow.AddChild(resetMemoryButton);
 
 		_logLabel = new RichTextLabel();
-		_logLabel.CustomMinimumSize = new Vector2(390, 160);
+		_logLabel.CustomMinimumSize = new Vector2(390, 80);
+		_logLabel.FitContent = false;
+		_logLabel.ScrollActive = true;
+		_logLabel.ScrollFollowing = true;
 		_logLabel.Text = "";
 		vbox.AddChild(_logLabel);
 	}
@@ -441,7 +454,7 @@ public partial class Main : Node2D
 		text += "\nSkills:\n";
 		text += _memory.GetSkillSummary();
 		text += "\nRecent Memories:\n";
-		text += _memory.GetMemorySummary();
+		text += _memory.GetRecentMemorySummary(5);
 
 		_statsLabel.Text = text;
 	}
