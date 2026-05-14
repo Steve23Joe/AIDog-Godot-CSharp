@@ -7,8 +7,9 @@ public partial class Main : Node2D
 	private DogMemory _memory = new DogMemory();
 	private RandomNumberGenerator _rng = new RandomNumberGenerator();
 
-	private Vector2 _ownerPosition = new Vector2(220, 320);
-	private Vector2 _ballPosition = new Vector2(650, 330);
+	private Rect2 _playArea = new Rect2(480, 60, 440, 420);
+	private Vector2 _ownerPosition = new Vector2(560, 320);
+	private Vector2 _ballPosition = new Vector2(800, 330);
 
 	private LineEdit _input;
 	private Label _statsLabel;
@@ -51,18 +52,20 @@ public partial class Main : Node2D
 	{
 		if (_dog != null)
 		{
+			_ownerPosition = ClampPointToPlayArea(_ownerPosition, 24.0f);
+			_ballPosition = ClampPointToPlayArea(_ballPosition, 13.0f);
 			_dog.OwnerPosition = _ownerPosition;
 			_dog.BallPosition = _ballPosition;
 
 			if (_dog.IsCarryingBall)
 			{
-				_ballPosition = _dog.GlobalPosition + new Vector2(24, -10);
+				_ballPosition = ClampPointToPlayArea(_dog.GlobalPosition + new Vector2(24, -10), 13.0f);
 			}
 			else if (_dog.State == DogController.DogState.Idle && _dog.GlobalPosition.DistanceTo(_ownerPosition) < 45.0f)
 			{
 				if (_lastCommand != null && _lastCommand.Intent == "fetch" && _lastCommandSucceeded)
 				{
-					_ballPosition = _ownerPosition + new Vector2(60, 30);
+					_ballPosition = ClampPointToPlayArea(_ownerPosition + new Vector2(60, 30), 13.0f);
 				}
 			}
 		}
@@ -74,7 +77,8 @@ public partial class Main : Node2D
 	{
 		_dog = new DogController();
 		_dog.Name = "AIDog";
-		_dog.GlobalPosition = new Vector2(420, 320);
+		_dog.GlobalPosition = new Vector2(680, 320);
+		_dog.SetMoveBounds(_playArea);
 
 		CollisionShape2D collision = new CollisionShape2D();
 		CircleShape2D shape = new CircleShape2D();
@@ -92,7 +96,7 @@ public partial class Main : Node2D
 
 		PanelContainer panel = new PanelContainer();
 		panel.Position = new Vector2(20, 20);
-		panel.CustomMinimumSize = new Vector2(560, 430);
+		panel.CustomMinimumSize = new Vector2(420, 500);
 		canvas.AddChild(panel);
 
 		VBoxContainer vbox = new VBoxContainer();
@@ -152,7 +156,7 @@ public partial class Main : Node2D
 		saveRow.AddChild(resetMemoryButton);
 
 		_logLabel = new RichTextLabel();
-		_logLabel.CustomMinimumSize = new Vector2(530, 220);
+		_logLabel.CustomMinimumSize = new Vector2(390, 160);
 		_logLabel.Text = "";
 		vbox.AddChild(_logLabel);
 	}
@@ -359,10 +363,7 @@ public partial class Main : Node2D
 
 	private void OnThrowBallPressed()
 	{
-		_ballPosition = new Vector2(
-			(float)_rng.RandfRange(550, 850),
-			(float)_rng.RandfRange(240, 450)
-		);
+		_ballPosition = GetRandomPointInPlayArea(13.0f);
 
 		AddLog("You threw the ball to a new position.");
 		QueueRedraw();
@@ -409,6 +410,27 @@ public partial class Main : Node2D
 		UpdateStats();
 	}
 
+	private Vector2 GetRandomPointInPlayArea(float margin)
+	{
+		return new Vector2(
+			(float)_rng.RandfRange(_playArea.Position.X + margin, _playArea.Position.X + _playArea.Size.X - margin),
+			(float)_rng.RandfRange(_playArea.Position.Y + margin, _playArea.Position.Y + _playArea.Size.Y - margin)
+		);
+	}
+
+	private Vector2 ClampPointToPlayArea(Vector2 point, float margin)
+	{
+		float minX = _playArea.Position.X + margin;
+		float minY = _playArea.Position.Y + margin;
+		float maxX = _playArea.Position.X + _playArea.Size.X - margin;
+		float maxY = _playArea.Position.Y + _playArea.Size.Y - margin;
+
+		return new Vector2(
+			Mathf.Clamp(point.X, minX, maxX),
+			Mathf.Clamp(point.Y, minY, maxY)
+		);
+	}
+
 	private void UpdateStats()
 	{
 		string text = "";
@@ -439,21 +461,31 @@ public partial class Main : Node2D
 
 	private void DrawBackground()
 	{
-		DrawRect(new Rect2(Vector2.Zero, new Vector2(960, 540)), new Color(0.12f, 0.15f, 0.18f));
-		DrawRect(new Rect2(new Vector2(0, 470), new Vector2(960, 70)), new Color(0.08f, 0.10f, 0.12f));
+		Rect2 screen = new Rect2(Vector2.Zero, new Vector2(960, 540));
+		Rect2 uiFrame = new Rect2(new Vector2(12, 12), new Vector2(436, 516));
+
+		DrawRect(screen, new Color(0.10f, 0.12f, 0.15f));
+		DrawRect(uiFrame, new Color(0.08f, 0.10f, 0.13f));
+		DrawRect(uiFrame, new Color(0.28f, 0.34f, 0.42f), false, 2.0f);
+		DrawRect(_playArea, new Color(0.15f, 0.20f, 0.18f));
+		DrawRect(_playArea, new Color(0.35f, 0.72f, 0.45f), false, 3.0f);
 	}
 
 	private void DrawOwner()
 	{
-		DrawCircle(_ownerPosition, 24.0f, new Color(0.25f, 0.55f, 1.0f));
-		DrawCircle(_ownerPosition + new Vector2(-7, -5), 3.0f, Colors.Black);
-		DrawCircle(_ownerPosition + new Vector2(7, -5), 3.0f, Colors.Black);
+		Vector2 ownerPosition = ClampPointToPlayArea(_ownerPosition, 24.0f);
+
+		DrawCircle(ownerPosition, 24.0f, new Color(0.25f, 0.55f, 1.0f));
+		DrawCircle(ownerPosition + new Vector2(-7, -5), 3.0f, Colors.Black);
+		DrawCircle(ownerPosition + new Vector2(7, -5), 3.0f, Colors.Black);
 	}
 
 	private void DrawBall()
 	{
-		DrawCircle(_ballPosition, 13.0f, new Color(1.0f, 0.35f, 0.15f));
-		DrawCircle(_ballPosition, 5.0f, new Color(1.0f, 0.85f, 0.25f));
+		Vector2 ballPosition = ClampPointToPlayArea(_ballPosition, 13.0f);
+
+		DrawCircle(ballPosition, 13.0f, new Color(1.0f, 0.35f, 0.15f));
+		DrawCircle(ballPosition, 5.0f, new Color(1.0f, 0.85f, 0.25f));
 	}
 
 	private void DrawHints()

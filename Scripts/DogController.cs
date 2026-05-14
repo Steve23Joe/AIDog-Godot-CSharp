@@ -17,6 +17,9 @@ public partial class DogController : CharacterBody2D
 	}
 
 	[Export] public float Speed = 150.0f;
+	[Export] public Rect2 MoveBounds = new Rect2(480, 60, 440, 420);
+
+	private const float BodyRadius = 24.0f;
 
 	public DogState State = DogState.Idle;
 
@@ -79,6 +82,7 @@ public partial class DogController : CharacterBody2D
 		}
 
 		MoveAndSlide();
+		ClampDogInsideBounds();
 		QueueRedraw();
 	}
 
@@ -133,8 +137,39 @@ public partial class DogController : CharacterBody2D
 		_playDirection = new Vector2(-1, 0.6f).Normalized();
 	}
 
+	public void SetMoveBounds(Rect2 bounds)
+	{
+		MoveBounds = bounds;
+		ClampDogInsideBounds();
+	}
+
+	private Vector2 ClampPointInsideBounds(Vector2 point)
+	{
+		float minX = MoveBounds.Position.X + BodyRadius;
+		float minY = MoveBounds.Position.Y + BodyRadius;
+		float maxX = MoveBounds.Position.X + MoveBounds.Size.X - BodyRadius;
+		float maxY = MoveBounds.Position.Y + MoveBounds.Size.Y - BodyRadius;
+
+		return new Vector2(
+			Mathf.Clamp(point.X, minX, maxX),
+			Mathf.Clamp(point.Y, minY, maxY)
+		);
+	}
+
+	private void ClampDogInsideBounds()
+	{
+		Vector2 clampedPosition = ClampPointInsideBounds(GlobalPosition);
+
+		if (!clampedPosition.IsEqualApprox(GlobalPosition))
+		{
+			GlobalPosition = clampedPosition;
+			Velocity = Vector2.Zero;
+		}
+	}
+
 	private void MoveTowardTarget(Vector2 target, float stopDistance)
 	{
+		target = ClampPointInsideBounds(target);
 		float distance = GlobalPosition.DistanceTo(target);
 
 		if (distance <= stopDistance)
@@ -150,7 +185,8 @@ public partial class DogController : CharacterBody2D
 
 	private void FollowOwner()
 	{
-		float distance = GlobalPosition.DistanceTo(OwnerPosition);
+		Vector2 target = ClampPointInsideBounds(OwnerPosition);
+		float distance = GlobalPosition.DistanceTo(target);
 
 		if (distance <= 80.0f)
 		{
@@ -158,13 +194,14 @@ public partial class DogController : CharacterBody2D
 			return;
 		}
 
-		Vector2 direction = GlobalPosition.DirectionTo(OwnerPosition);
+		Vector2 direction = GlobalPosition.DirectionTo(target);
 		Velocity = direction * Speed;
 	}
 
 	private void MoveTowardBall()
 	{
-		float distance = GlobalPosition.DistanceTo(BallPosition);
+		Vector2 target = ClampPointInsideBounds(BallPosition);
+		float distance = GlobalPosition.DistanceTo(target);
 
 		if (distance <= 22.0f)
 		{
@@ -173,13 +210,14 @@ public partial class DogController : CharacterBody2D
 			return;
 		}
 
-		Vector2 direction = GlobalPosition.DirectionTo(BallPosition);
+		Vector2 direction = GlobalPosition.DirectionTo(target);
 		Velocity = direction * Speed;
 	}
 
 	private void ReturnBallToOwner()
 	{
-		float distance = GlobalPosition.DistanceTo(OwnerPosition);
+		Vector2 target = ClampPointInsideBounds(OwnerPosition);
+		float distance = GlobalPosition.DistanceTo(target);
 
 		if (distance <= 35.0f)
 		{
@@ -188,7 +226,7 @@ public partial class DogController : CharacterBody2D
 			return;
 		}
 
-		Vector2 direction = GlobalPosition.DirectionTo(OwnerPosition);
+		Vector2 direction = GlobalPosition.DirectionTo(target);
 		Velocity = direction * Speed;
 	}
 
