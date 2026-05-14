@@ -16,6 +16,10 @@ public class DogSaveData
 	public int Trust = 50;
 	public int Energy = 80;
 	public string Mood = "curious";
+	public int Curiosity = 50;
+	public int Playfulness = 60;
+	public int Attachment = 50;
+	public int Obedience = 40;
 	public Dictionary<string, SkillData> Skills = new Dictionary<string, SkillData>();
 	public List<string> Memories = new List<string>();
 }
@@ -29,6 +33,10 @@ public class DogMemory
 	public int Trust = 50;
 	public int Energy = 80;
 	public string Mood = "curious";
+	public int Curiosity = 50;
+	public int Playfulness = 60;
+	public int Attachment = 50;
+	public int Obedience = 40;
 
 	public Dictionary<string, SkillData> Skills = new Dictionary<string, SkillData>();
 
@@ -51,6 +59,10 @@ public class DogMemory
 		Trust = 50;
 		Energy = 80;
 		Mood = "curious";
+		Curiosity = 50;
+		Playfulness = 60;
+		Attachment = 50;
+		Obedience = 40;
 
 		Skills = new Dictionary<string, SkillData>
 		{
@@ -121,6 +133,17 @@ public class DogMemory
 
 		Skills[command].Exp += expGain;
 		Trust += success ? 3 : 1;
+
+		if (success)
+		{
+			Obedience += 2;
+			Attachment += 1;
+		}
+		else
+		{
+			Attachment += 1;
+		}
+
 		Mood = success ? "happy" : "encouraged";
 
 		if (Skills[command].Exp >= 100)
@@ -130,7 +153,7 @@ public class DogMemory
 			AddMemory($"{DogName} learned better how to perform command: {command}");
 		}
 
-		Trust = Mathf.Clamp(Trust, 0, 100);
+		ClampCoreStats();
 		AddMemory($"{DogName} was rewarded after command: {command}");
 	}
 
@@ -139,10 +162,20 @@ public class DogMemory
 		EnsureSkillExists(command);
 
 		Trust -= success ? 4 : 8;
+		Attachment -= 3;
+		Playfulness -= 2;
 		Mood = "nervous";
-		Trust = Mathf.Clamp(Trust, 0, 100);
+		ClampCoreStats();
 
 		AddMemory($"{DogName} was scolded after command: {command}");
+	}
+
+	public string GetPersonalitySummary()
+	{
+		return $"Curiosity: {Curiosity}/100\n" +
+			$"Playfulness: {Playfulness}/100\n" +
+			$"Attachment: {Attachment}/100\n" +
+			$"Obedience: {Obedience}/100\n";
 	}
 
 	public string GetSkillSummary()
@@ -193,6 +226,10 @@ public class DogMemory
 				Trust = Trust,
 				Energy = Energy,
 				Mood = Mood,
+				Curiosity = Curiosity,
+				Playfulness = Playfulness,
+				Attachment = Attachment,
+				Obedience = Obedience,
 				Skills = Skills,
 				Memories = Memories
 			};
@@ -250,13 +287,16 @@ public class DogMemory
 			Trust = saveData.Trust;
 			Energy = saveData.Energy;
 			Mood = saveData.Mood;
+			Curiosity = saveData.Curiosity;
+			Playfulness = saveData.Playfulness;
+			Attachment = saveData.Attachment;
+			Obedience = saveData.Obedience;
 			Skills = saveData.Skills ?? new Dictionary<string, SkillData>();
 			Memories = saveData.Memories ?? new List<string>();
 
 			EnsureAllDefaultSkillsExist();
 
-			Trust = Mathf.Clamp(Trust, 0, 100);
-			Energy = Mathf.Clamp(Energy, 0, 100);
+			ClampCoreStats();
 
 			GD.Print("Dog memory loaded from: " + SavePath);
 			return true;
@@ -293,6 +333,16 @@ public class DogMemory
 			GD.PrintErr("Delete save failed: " + e.Message);
 			return false;
 		}
+	}
+
+	private void ClampCoreStats()
+	{
+		Trust = Mathf.Clamp(Trust, 0, 100);
+		Energy = Mathf.Clamp(Energy, 0, 100);
+		Curiosity = Mathf.Clamp(Curiosity, 0, 100);
+		Playfulness = Mathf.Clamp(Playfulness, 0, 100);
+		Attachment = Mathf.Clamp(Attachment, 0, 100);
+		Obedience = Mathf.Clamp(Obedience, 0, 100);
 	}
 
 	private void EnsureSkillExists(string command)
